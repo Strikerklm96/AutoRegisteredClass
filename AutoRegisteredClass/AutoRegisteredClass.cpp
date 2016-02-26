@@ -2,80 +2,89 @@
 #include <string>
 #include <map>
 
-using namespace std;
 
-///Factory and Register
-class Base;
-class BaseFactory
+///Reflect and Register
+#define MyType(BASE, TYPE) \
+	static Registerer<BASE, TYPE> reg
+
+#define Register(BASE, TYPE) \
+	Registerer<BASE, TYPE> TYPE::reg(#TYPE)
+
+template<class B>
+class Deduce
 {
 public:
-	static void add(string name, Base* instance)
+	static B* from(const std::string& name, B* instance = NULL)
 	{
-		mapping[name] = instance;
+		static std::map<std::string, B*> mapping;
+		if(instance != NULL)
+		{
+			mapping[name] = instance;
+			return NULL;
+		}
+		else//should check if name is in map first
+			return mapping[name];
 	}
-	static Base* get(string name)
-	{
-		return mapping[name];
-	}
-
-	static map<string, Base*> mapping;
 };
-map<string, Base*> BaseFactory::mapping = map<string, Base*>();
-template<class T>
-class Register
+
+template<class B, class D>
+class Registerer
 {
 public:
-	Register(std::string name)
+	Registerer(const std::string& name)
 	{
-		BaseFactory::add(name, new T);
+		Deduce<Base>::from(name, new D);//actually add
 	}
 };
-///Factory and Register
+///Deduce and Register
 
-///Heirarchy
+
+///Class examples implementing Registration
 class Base
 {
 public:
 	Base()
 	{
-		name = "base class";
+		name = "Base Class";
 	}
-	string getName()
+	const std::string& getName()
 	{
 		return name;
 	}
 protected:
-	string name;
+	std::string name;
 };
 class Derived1 : public Base
 {
 public:
 	Derived1()
 	{
-		name = "derived 1 class";
+		name = "I am type 1.\n";
 	}
-	static Register<Derived1> reg;
+	MyType(Base, Derived1);
 };
-Register<Derived1> Derived1::reg("Derived1");
+Register(Base, Derived1);
+
 class Derived2 : public Base
 {
 public:
 	Derived2()
 	{
-		name = "derived 2 class";
+		name = "I am type 2.\n";
 	}
-	static Register<Derived2> reg;
+	MyType(Base, Derived2);
 };
-Register<Derived2> Derived2::reg("Derived2");
-///Heirarchy
+Register(Base, Derived2);
+///Class examples implementing Registration
+
 
 int main()
 {
-	string type1 = "Derived1";
-	string type2 = "Derived2";
+	std::string typeString1 = "Derived1";
+	std::string typeString2 = "Derived2";
 
-	cout << BaseFactory::get(type1)->getName() << endl;
-	cout << BaseFactory::get(type2)->getName();
+	std::cout << Deduce<Base>::from(typeString1)->getName();
+	std::cout << Deduce<Base>::from(typeString2)->getName();
 
 	return 0;
 }
